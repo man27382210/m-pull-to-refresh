@@ -32,10 +32,8 @@ try {
   });
   window.addEventListener('test', null as any, opts);
 } catch (e) {
-  // empty
 }
 const willPreventDefault = supportsPassive ? { passive: false } : false;
-// const willNotPreventDefault = supportsPassive ? { passive: true } : false;
 
 export default class PullToRefresh extends React.Component<PropsType, any> {
   static defaultProps = {
@@ -47,8 +45,6 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
     indicator: INDICATOR as Indicator,
   } as PropsType;
 
-  // https://github.com/yiminghe/zscroller/blob/2d97973287135745818a0537712235a39a6a62a1/src/Scroller.js#L355
-  // currSt: `activate` / `deactivate` / `release` / `finish`
   state = {
     currSt: 'deactivate',
     dragOnEdge: false,
@@ -75,12 +71,10 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
     if (prevProps === this.props || prevProps.refreshing === this.props.refreshing) {
       return;
     }
-    // triggerPullToRefresh 需要尽可能减少 setState 次数
     this.triggerPullToRefresh();
   }
 
   componentDidMount() {
-    // `getScrollContainer` most likely return React.Node at the next tick. Need setTimeout
     setTimeout(() => {
       this.init(this.props.getScrollContainer() || this.containerRef);
       this.triggerPullToRefresh();
@@ -94,9 +88,6 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
   }
 
   triggerPullToRefresh = () => {
-    // 在初始化时、用代码 自动 触发 pullToRefresh
-    // 注意：当 direction 为 up 时，当 visible length < content length 时、则看不到效果
-    // 添加this._isMounted的判断，否则组建一实例化，currSt就会是finish
     if (!this.state.dragOnEdge && this._isMounted) {
       if (this.props.refreshing) {
         if (this.props.direction === UP) {
@@ -139,9 +130,21 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
     });
   }
 
+  isPullToRefresh = (el: any): boolean => {
+    if (el.scrollTop == 0) {
+      if (el.className.indexOf('rmc-pull-to-refresh') > -1) {
+        return true;
+      }else{
+        return this.isPullToRefresh(el.parentElement);
+      }
+    }else{
+      return false;
+    }
+  }
+
   onTouchStart = (_ele: any, e: any) => {
+    if(!this.isPullToRefresh(e.target)) return;
     this._ScreenY = this._startScreenY = e.touches[0].screenY;
-    // 一开始 refreshing 为 true 时 this._lastScreenY 有值
     this._lastScreenY = this._lastScreenY || 0;
   }
 
@@ -177,11 +180,9 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
   }
 
   onTouchMove = (ele: any, e: any) => {
-    // 使用 pageY 对比有问题
     const _screenY = e.touches[0].screenY;
     const { direction } = this.props;
 
-    // 拖动方向不符合的不处理
     if (direction === UP && this._startScreenY < _screenY ||
       direction === DOWN && this._startScreenY > _screenY) {
       return;
@@ -189,8 +190,6 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
 
     if (this.isEdge(ele, direction)) {
       if (!this.state.dragOnEdge) {
-        // 当用户开始往上滑的时候isEdge还是false的话，会导致this._ScreenY不是想要的，只有当isEdge为true时，再上滑，才有意义
-        // 下面这行代码解决了上面这个问题
         this._ScreenY = this._startScreenY = e.touches[0].screenY;
 
         this.setState({ dragOnEdge: true });
@@ -218,8 +217,6 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
         }
       }
 
-      // https://github.com/ant-design/ant-design-mobile/issues/573#issuecomment-339560829
-      // iOS UIWebView issue, It seems no problem in WKWebView
       if (isWebView && e.changedTouches[0].clientY < 0) {
         this.onTouchEnd();
       }
@@ -250,7 +247,6 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
   }
 
   setContentStyle = (ty: number) => {
-    // todos: Why sometimes do not have `this.contentRef` ?
     if (this.contentRef) {
       setTransform(this.contentRef.style, `translate3d(0px,${ty}px,0)`);
     }
@@ -263,7 +259,7 @@ export default class PullToRefresh extends React.Component<PropsType, any> {
 
     const {
       className, prefixCls, children, getScrollContainer,
-      direction, onRefresh, refreshing, indicator, distanceToRefresh, ...restProps,
+      direction, onRefresh, refreshing, indicator, distanceToRefresh, ...restProps
     } = props;
 
     const renderChildren = <StaticRenderer
